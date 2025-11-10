@@ -7,12 +7,11 @@ package io.mosip.preregistration.batchjob.entity;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import io.mosip.preregistration.core.converter.EncryptPiiDataConverter;
+import jakarta.persistence.*;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Component;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
@@ -66,10 +65,18 @@ public class DemographicEntityConsumed implements Serializable {
 
 	/** The created by. */
 	@Column(name = "cr_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String createdBy;
+
+	/**
+	 * Hashed Created By
+	 */
+	@Column(name = "cr_by_hash")
+	private String createdByHash;
 
 	/** The created appuser by. */
 	@Column(name = "cr_appuser_id")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String crAppuserId;
 
 	/** The create date time. */
@@ -78,6 +85,7 @@ public class DemographicEntityConsumed implements Serializable {
 
 	/** The updated by. */
 	@Column(name = "upd_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String updatedBy;
 
 	/** The update date time. */
@@ -92,4 +100,22 @@ public class DemographicEntityConsumed implements Serializable {
 
 	@Column(name = "demog_detail_hash")
 	private String demogDetailHash;
+
+
+	@PrePersist
+	private void prePersist() {
+		// createdBy is the plain value here; @Convert runs at DB interaction time.
+		if (this.createdBy != null) {
+			this.createdByHash = DigestUtils.sha256Hex(this.createdBy);
+		}
+	}
+
+	// Optional: if you ever allow changing crBy and want hash kept in sync
+	@PreUpdate
+	private void preUpdate() {
+		if (this.createdBy != null) {
+			this.createdByHash = DigestUtils.sha256Hex(this.createdBy);
+		}
+	}
+
 }

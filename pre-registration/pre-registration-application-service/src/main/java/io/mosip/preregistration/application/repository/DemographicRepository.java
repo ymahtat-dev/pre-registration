@@ -34,25 +34,25 @@ import io.mosip.preregistration.core.common.entity.DemographicEntity;
 public interface DemographicRepository extends BaseRepository<DemographicEntity, String> {
 
 	/**
-	 * @param userId
-	 *            pass userId
+	 * @param hashedUserId
+	 *            pass userId hash
 	 * @param statusCode
 	 *            pass statusCode
 	 * @return list of preregistration data for the created date
 	 */
-	public List<DemographicEntity> findByCreatedBy(@Param("userId") String userId,
+	public List<DemographicEntity> findByCreatedBy(@Param("hashedUserId") String hashedUserId,
 			@Param("statusCode") String statusCode);
 
 	/**
-	 * @param userId
-	 *            pass userId
+	 * @param hashedUserId
+	 *            pass userId hash
 	 * @param statusCode
 	 *            pass statusCode
 	 * @param pageable
 	 *            pass pageable object
 	 * @return list of preregistration data for the created user
 	 */
-	public Page<DemographicEntity> findByCreatedByOrderByCreateDateTime(@Param("userId") String userId,
+	public Page<DemographicEntity> findByCreatedByOrderByCreateDateTime(@Param("hashedUserId") String hashedUserId,
 			@Param("statusCode") String statusCode, Pageable pageable);
 
 	/**

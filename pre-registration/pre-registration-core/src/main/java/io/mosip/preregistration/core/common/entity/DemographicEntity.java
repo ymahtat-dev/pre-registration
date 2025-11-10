@@ -8,16 +8,13 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import io.mosip.preregistration.core.converter.EncryptPiiDataConverter;
+import jakarta.persistence.*;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.NamedQuery;
 import org.springframework.stereotype.Component;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -41,10 +38,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "applicant_demographic", schema = "prereg")
 @NoArgsConstructor
-@NamedQuery(name = "DemographicEntity.findByCreatedByOrderByCreateDateTime", query = "SELECT e FROM DemographicEntity e  WHERE e.createdBy=:userId and e.statusCode <>:statusCode order by e.createDateTime desc")
-@NamedQuery(name = "DemographicEntity.findByCreatedBy", query = "SELECT e FROM DemographicEntity e  WHERE e.createdBy=:userId and e.statusCode <>:statusCode order by e.createDateTime desc")
+@NamedQuery(name = "DemographicEntity.findByCreatedByOrderByCreateDateTime", query = "SELECT e FROM DemographicEntity e  WHERE e.createdByHash=:hashedUserId and e.statusCode <>:statusCode order by e.createDateTime desc")
+@NamedQuery(name = "DemographicEntity.findByCreatedBy", query = "SELECT e FROM DemographicEntity e  WHERE e.createdByHash=:hashedUserId and e.statusCode <>:statusCode order by e.createDateTime desc")
 @NamedQuery(name = "DemographicEntity.findBypreRegistrationId", query = "SELECT r FROM DemographicEntity r  WHERE r.preRegistrationId=:preRegId")
 public class DemographicEntity implements Serializable {
+
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 6705845720255847210L;
 
@@ -71,10 +69,19 @@ public class DemographicEntity implements Serializable {
 
 	/** The created by. */
 	@Column(name = "cr_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String createdBy;
+
+	/**
+	 * Hashed Created By
+	 */
+	@Column(name = "cr_by_hash")
+	private String createdByHash;
+
 
 	/** The created appuser by. */
 	@Column(name = "cr_appuser_id")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String crAppuserId;
 
 	/** The create date time. */
@@ -83,6 +90,7 @@ public class DemographicEntity implements Serializable {
 
 	/** The updated by. */
 	@Column(name = "upd_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String updatedBy;
 
 	/** The update date time. */
@@ -97,4 +105,22 @@ public class DemographicEntity implements Serializable {
 
 	@Column(name = "demog_detail_hash")
 	private String demogDetailHash;
+
+
+	@PrePersist
+	private void prePersist() {
+		// createdBy is the plain value here; @Convert runs at DB interaction time.
+		if (this.createdBy != null) {
+			this.createdByHash = DigestUtils.sha256Hex(this.createdBy);
+		}
+	}
+
+	// Optional: if you ever allow changing crBy and want hash kept in sync
+	@PreUpdate
+	private void preUpdate() {
+		if (this.createdBy != null) {
+			this.createdByHash = DigestUtils.sha256Hex(this.createdBy);
+		}
+	}
+
 }

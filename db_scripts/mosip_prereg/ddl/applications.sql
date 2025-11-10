@@ -10,10 +10,11 @@ CREATE TABLE prereg.applications(
 	booking_date date,
 	slot_from_time time without time zone,
 	slot_to_time time without time zone,
-	contact_info character varying(256),
-	cr_by character varying(256) NOT NULL,
+	contact_info character varying(3000),
+	cr_by character varying(3000) NOT NULL,
+    cr_by_hash character varying(3000),
 	cr_dtimes timestamp without time zone NOT NULL,
-	upd_by character varying(256),
+	upd_by character varying(3000),
 	upd_dtimes timestamp without time zone,
 	CONSTRAINT appid_pk PRIMARY KEY (application_id)
 );

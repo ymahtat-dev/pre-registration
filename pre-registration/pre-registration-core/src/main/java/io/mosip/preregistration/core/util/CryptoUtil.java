@@ -6,6 +6,7 @@ import static io.mosip.preregistration.core.constant.PreRegCoreConstant.LOGGER_S
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -51,6 +52,9 @@ public class CryptoUtil {
 
 	@Value("${preregistration.crypto.applicationId}")
 	public String cryptoApplcationId;
+
+	@Value("${preregistration.crypto.pii.referenceId}")
+	public String cryptoPiiReferenceId;
 
 	@Value("${preregistration.crypto.referenceId}")
 	public String cryptoReferenceId;
@@ -101,6 +105,59 @@ public class CryptoUtil {
 
 	}
 
+
+	public String encryptPiiData(String originalData, LocalDateTime encryptedTimestamp) {
+		log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "In encryptPiiData method of CryptoUtil service ");
+		ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> response = null;
+		String encryptedData = null;
+		try {
+			final byte[] originalBytes = originalData.getBytes();
+			final String encodedBytes = io.mosip.kernel.core.util.CryptoUtil.encodeToURLSafeBase64(originalBytes);
+			final CryptoManagerRequestDTO dto = new CryptoManagerRequestDTO();
+			dto.setApplicationId(cryptoApplcationId);
+			dto.setReferenceId(cryptoPiiReferenceId);
+			dto.setTimeStamp(encryptedTimestamp);
+			dto.setData(encodedBytes);
+			final RequestWrapper<CryptoManagerRequestDTO> requestKernel = new RequestWrapper<>();
+			requestKernel.setRequest(dto);
+			final HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			final HttpEntity<RequestWrapper<CryptoManagerRequestDTO>> request = new HttpEntity<>(requestKernel, headers);
+			log.info(
+					LOGGER_SESSIONID,
+					LOGGER_IDTYPE,
+					LOGGER_ID,
+					"In encryptPiiData method of CryptoUtil service cryptoResourceUrl: " + cryptoResourceUrl + "/encrypt"
+			);
+			response = restTemplate.exchange(
+					cryptoResourceUrl + "/encrypt",
+					HttpMethod.POST,
+					request,
+					new ParameterizedTypeReference<>() {}
+			);
+			log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "encryptPiiData response of " + response);
+			ResponseWrapper<CryptoManagerResponseDTO> body = response.getBody();
+			if (body != null) {
+				if (!(body.getErrors() == null || body.getErrors().isEmpty())) {
+					throw new EncryptionFailedException(body.getErrors(), null);
+				}
+				if (body.getResponse() != null) {
+					encryptedData = body.getResponse().getData();
+				}
+			}
+		} catch (Exception ex) {
+			log.debug(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, ExceptionUtils.getStackTrace(ex));
+			log.error(
+					LOGGER_SESSIONID,
+					LOGGER_IDTYPE,
+					LOGGER_ID,
+					"In encrypt method of CryptoUtil Util for Exception- " + ex.getMessage()
+			);
+			throw ex;
+		}
+		return encryptedData;
+	}
+
 	public byte[] decrypt(byte[] originalInput, LocalDateTime localDateTime) {
 		log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "In decrypt method of CryptoUtil service ");
 		ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> response = null;
@@ -141,5 +198,51 @@ public class CryptoUtil {
 			throw ex;
 		}
 		return decodedBytes;
+	}
+
+	public String decryptPiiData(String encryptedData, LocalDateTime decodedTimestamp) {
+		log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "In decryptPiiData method of CryptoUtil service ");
+		ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> response = null;
+		String decodedData = null;
+		try {
+			final CryptoManagerRequestDTO dto = new CryptoManagerRequestDTO();
+			dto.setApplicationId(cryptoApplcationId);
+			dto.setReferenceId(cryptoPiiReferenceId);
+			dto.setTimeStamp(decodedTimestamp);
+			dto.setData(encryptedData);
+			final RequestWrapper<CryptoManagerRequestDTO> requestKernel = new RequestWrapper<>();
+			requestKernel.setRequest(dto);
+			final HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			final HttpEntity<RequestWrapper<CryptoManagerRequestDTO>> request = new HttpEntity<>(requestKernel, headers);
+			log.info(
+					LOGGER_SESSIONID,
+					LOGGER_IDTYPE,
+					LOGGER_ID,
+					"In decryptPiiData method of CryptoUtil service cryptoResourceUrl: " + cryptoResourceUrl + "/decrypt"
+			);
+			response = restTemplate.exchange(
+					cryptoResourceUrl + "/decrypt",
+					HttpMethod.POST,
+					request,
+					new ParameterizedTypeReference<>() {}
+			);
+			ResponseWrapper<CryptoManagerResponseDTO> body = response.getBody();
+			if (body != null) {
+				if (!(body.getErrors() == null || body.getErrors().isEmpty())) {
+					throw new EncryptionFailedException(body.getErrors(), null);
+				}
+				if (body.getResponse() != null) {
+					final byte[] decodedBytes = Base64.decodeBase64(body.getResponse().getData().getBytes());
+					decodedData = new String(decodedBytes, StandardCharsets.UTF_8);
+				}
+			}
+		} catch (Exception ex) {
+			log.debug(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, ExceptionUtils.getStackTrace(ex));
+			log.error(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID,
+					"In decrypt method of CryptoUtil Util for Exception- " + ex.getMessage());
+			throw ex;
+		}
+		return decodedData;
 	}
 }

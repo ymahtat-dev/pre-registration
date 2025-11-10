@@ -32,10 +32,10 @@ public interface ApplicationRepostiory extends BaseRepository<ApplicationEntity,
 	@Query("SELECT e FROM ApplicationEntity e WHERE e.applicationId = ?1")
 	public ApplicationEntity findByApplicationId(String applicationId);
 	
-	@Query("SELECT e FROM ApplicationEntity e  WHERE e.crBy= ?1 order by e.crDtime desc")
-	public List<ApplicationEntity> findByCreatedBy(String userId);
+	@Query("SELECT e FROM ApplicationEntity e  WHERE e.crByHash= ?1 order by e.crDtime desc")
+	public List<ApplicationEntity> findByCreatedBy(String hashedUserId);
 	
-	@Query("SELECT e FROM ApplicationEntity e  WHERE e.crBy= ?1 and e.bookingType= ?2 order by e.crDtime desc")
-	public List<ApplicationEntity> findByCreatedByBookingType(String userId, String bookingType);
+	@Query("SELECT e FROM ApplicationEntity e  WHERE e.crByHash= ?1 and e.bookingType= ?2 order by e.crDtime desc")
+	public List<ApplicationEntity> findByCreatedByBookingType(String hashedUserId, String bookingType);
 	
 }

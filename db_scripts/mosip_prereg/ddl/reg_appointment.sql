@@ -8,9 +8,9 @@ CREATE TABLE prereg.reg_appointment(
 	slot_from_time time,
 	slot_to_time time,
 	lang_code character varying(3) NOT NULL,
-	cr_by character varying(256) NOT NULL,
+	cr_by character varying(3000) NOT NULL,
 	cr_dtimes timestamp NOT NULL,
-	upd_by character varying(256),
+	upd_by character varying(3000),
 	upd_dtimes timestamp,
 	CONSTRAINT pk_rappmnt_id PRIMARY KEY (id),
 	CONSTRAINT uk_rappmnt_id UNIQUE (prereg_id)

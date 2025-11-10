@@ -13,9 +13,9 @@ CREATE TABLE prereg.applicant_document(
 	encrypted_dtimes timestamp NOT NULL,
 	status_code character varying(36) NOT NULL,
 	lang_code character varying(3) NOT NULL,
-	cr_by character varying(256),
+	cr_by character varying(3000),
 	cr_dtimes timestamp,
-	upd_by character varying(256),
+	upd_by character varying(3000),
 	upd_dtimes timestamp,
 	CONSTRAINT pk_appldoc_prereg_id PRIMARY KEY (id)
 );

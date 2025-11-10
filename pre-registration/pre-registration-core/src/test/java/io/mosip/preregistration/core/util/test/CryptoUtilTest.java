@@ -1,9 +1,16 @@
 package io.mosip.preregistration.core.util.test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Collections;
 
+import io.mosip.kernel.core.exception.ServiceError;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -59,8 +66,8 @@ public class CryptoUtilTest {
 		ResponseWrapper<CryptoManagerResponseDTO> resEntity=new ResponseWrapper<>();
 		resEntity.setResponse(cryptoRes);
 		ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> res = new ResponseEntity<>(resEntity, HttpStatus.OK);
-		Mockito.when(restTemplate.exchange(Mockito.anyString(), Mockito.eq(HttpMethod.POST), Mockito.any(),
-				Mockito.eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {
+		Mockito.when(restTemplate.exchange(Mockito.anyString(), eq(HttpMethod.POST), Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {
 				}))).thenReturn(res);
 		assertNotNull(crypto.encrypt("hello".getBytes(), LocalDateTime.now()));
 
@@ -70,8 +77,8 @@ public class CryptoUtilTest {
 	@Test(expected=HttpClientErrorException.class)
 	public void encryptFailedExceptionTest() {
 		HttpClientErrorException ex = new HttpClientErrorException(HttpStatus.OK);
-		Mockito.when(restTemplate.exchange(Mockito.anyString(), Mockito.eq(HttpMethod.POST), Mockito.any(),
-				Mockito.eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {
+		Mockito.when(restTemplate.exchange(Mockito.anyString(), eq(HttpMethod.POST), Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {
 				}))).thenThrow(ex);
 		crypto.encrypt("hello".getBytes(), LocalDateTime.now());
 
@@ -103,5 +110,124 @@ public class CryptoUtilTest {
 	 * 
 	 * }
 	 */
+
+
+	@Test
+	public void encryptPiiData_success() {
+		final CryptoManagerResponseDTO cryptoResponse = new CryptoManagerResponseDTO();
+		cryptoResponse.setData("ciphertext-abc123");
+		final ResponseWrapper<CryptoManagerResponseDTO> wrappedResponse = new ResponseWrapper<>();
+		wrappedResponse.setResponse(cryptoResponse);
+		final ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> responseEntity = new ResponseEntity<>(
+				wrappedResponse,
+				HttpStatus.OK
+		);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenReturn(responseEntity);
+		final String out = crypto.encryptPiiData("hello", LocalDateTime.now());
+		assertEquals("ciphertext-abc123", out);
+	}
+
+	@Test
+	public void encryptPiiData_serviceReturnsErrors_throwsEncryptionFailedException() {
+		final ResponseWrapper<CryptoManagerResponseDTO> wrappedResponse = new ResponseWrapper<>();
+		final ServiceError error = new ServiceError();
+		error.setErrorCode("CRYPTO-ERR");
+		error.setMessage("Failed");
+		wrappedResponse.setErrors(Collections.singletonList(error));
+		final ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> responseEntity = new ResponseEntity<>(
+				wrappedResponse,
+				HttpStatus.OK
+		);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenReturn(responseEntity);
+		assertThrows(
+				io.mosip.preregistration.core.exception.EncryptionFailedException.class,
+				() -> crypto.encryptPiiData("hello", LocalDateTime.now())
+		);
+	}
+
+	@Test
+	public void encryptPiiData_restTemplateThrows_propagates() {
+		final HttpClientErrorException errorException = new HttpClientErrorException(HttpStatus.BAD_REQUEST);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenThrow(errorException);
+		assertThrows(
+				HttpClientErrorException.class,
+				() -> crypto.encryptPiiData("hello", LocalDateTime.now())
+		);
+	}
+
+	@Test
+	public void decryptPiiData_success() {
+		final byte[] plain = "world".getBytes(StandardCharsets.UTF_8);
+		final String base64 = Base64.encodeBase64String(plain);
+		final CryptoManagerResponseDTO cryptoResponse = new CryptoManagerResponseDTO();
+		cryptoResponse.setData(base64);
+		final ResponseWrapper<CryptoManagerResponseDTO> wrappedResponse = new ResponseWrapper<>();
+		wrappedResponse.setResponse(cryptoResponse);
+		final ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> responseEntity = new ResponseEntity<>(
+				wrappedResponse,
+				HttpStatus.OK
+		);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenReturn(responseEntity);
+		final String out = crypto.decryptPiiData("ignored-ciphertext", LocalDateTime.now());
+		assertEquals(java.util.Arrays.toString(plain), out);
+	}
+
+	@Test
+	public void decryptPiiData_serviceReturnsErrors_throwsEncryptionFailedException() {
+		final ResponseWrapper<CryptoManagerResponseDTO> wrappedResponse = new ResponseWrapper<>();
+		final ServiceError error = new ServiceError();
+		error.setErrorCode("CRYPTO-ERR");
+		error.setMessage("Failed");
+		wrappedResponse.setErrors(Collections.singletonList(error));
+		final ResponseEntity<ResponseWrapper<CryptoManagerResponseDTO>> responseEntity = new ResponseEntity<>(
+				wrappedResponse,
+				HttpStatus.OK
+		);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenReturn(responseEntity);
+		assertThrows(
+				io.mosip.preregistration.core.exception.EncryptionFailedException.class,
+				() -> crypto.decryptPiiData("cipher", LocalDateTime.now())
+		);
+	}
+
+	@Test
+	public void decryptPiiData_restTemplateThrows_propagates() {
+		final HttpClientErrorException errorException = new HttpClientErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
+		Mockito.when(restTemplate.exchange(
+				Mockito.anyString(),
+				eq(HttpMethod.POST),
+				Mockito.any(),
+				eq(new ParameterizedTypeReference<ResponseWrapper<CryptoManagerResponseDTO>>() {})
+		)).thenThrow(errorException);
+		assertThrows(
+				HttpClientErrorException.class,
+				() -> crypto.decryptPiiData("cipher", LocalDateTime.now())
+		);
+	}
 
 }

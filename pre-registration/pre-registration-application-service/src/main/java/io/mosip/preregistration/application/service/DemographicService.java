@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -489,8 +490,11 @@ public class DemographicService implements DemographicServiceIntf {
 			if (validationUtil.requstParamValidator(requestParamMap)) {
 				log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID,
 						"get demographic details start time : " + DateUtils.getUTCCurrentDateTimeString());
-				List<DemographicEntity> demographicEntities = demographicRepository.findByCreatedBy(userId,
-						StatusCodes.CONSUMED.getCode());
+				final String hashedUserId = DigestUtils.sha256Hex(userId);
+				List<DemographicEntity> demographicEntities = demographicRepository.findByCreatedBy(
+						hashedUserId,
+						StatusCodes.CONSUMED.getCode()
+				);
 				log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID,
 						"get demographic details end time : " + DateUtils.getUTCCurrentDateTimeString());
 				if (!serviceUtil.isNull(demographicEntities)) {
@@ -512,7 +516,7 @@ public class DemographicService implements DemographicServiceIntf {
 								"pagination start time : " + DateUtils.getUTCCurrentDateTimeString());
 						@SuppressWarnings("static-access")
 						Page<DemographicEntity> demographicEntityPage = demographicRepository
-								.findByCreatedByOrderByCreateDateTime(userId, StatusCodes.CONSUMED.getCode(),
+								.findByCreatedByOrderByCreateDateTime(hashedUserId, StatusCodes.CONSUMED.getCode(),
 										PageRequest.of(serviceUtil.parsePageIndex(pageIdx),
 												serviceUtil.parsePageSize(pageSize)));
 						log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID,

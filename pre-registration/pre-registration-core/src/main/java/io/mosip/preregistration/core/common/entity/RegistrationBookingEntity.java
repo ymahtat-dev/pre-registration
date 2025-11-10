@@ -9,10 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import io.mosip.preregistration.core.converter.EncryptPiiDataConverter;
+import jakarta.persistence.*;
 import lombok.Data;
 
 /**
@@ -74,6 +72,7 @@ public class RegistrationBookingEntity implements Serializable {
 
 	/** Created by. */
 	@Column(name = "cr_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String crBy;
 
 	/** Created date time. */
@@ -82,6 +81,7 @@ public class RegistrationBookingEntity implements Serializable {
 
 	/** Created by. */
 	@Column(name = "upd_by")
+	@Convert(converter = EncryptPiiDataConverter.class)
 	private String upBy;
 
 	/** Updated date time. */

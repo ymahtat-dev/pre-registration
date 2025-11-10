@@ -17,6 +17,7 @@ import java.util.Map;
 
 import io.mosip.kernel.core.idvalidator.exception.InvalidIDException;
 import io.mosip.preregistration.application.exception.*;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -483,7 +484,8 @@ public class ApplicationService implements ApplicationServiceIntf {
 		response.setVersion(version);
 		response.setResponsetime(DateTimeFormatter.ofPattern(mosipDateTimeFormat).format(LocalDateTime.now()));
 		try {
-			List<ApplicationEntity> applicationEntities = applicationRepository.findByCreatedBy(userId);
+			final String hashedUserId = DigestUtils.sha256Hex(userId);
+			List<ApplicationEntity> applicationEntities = applicationRepository.findByCreatedBy(hashedUserId);
 			log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "Number of applications found for the current user: "+ applicationEntities.size());
 			applicationsListDTO.setAllApplications(applicationEntities);
 			response.setResponse(applicationsListDTO);
@@ -582,8 +584,11 @@ public class ApplicationService implements ApplicationServiceIntf {
 						ApplicationErrorMessages.INVALID_BOOKING_TYPE.getMessage());
 
 			}
-			List<ApplicationEntity> applicationEntities = applicationRepository.findByCreatedByBookingType(userId,
-					type.toUpperCase());
+			final String hashedUserId = DigestUtils.sha256Hex(userId);
+			List<ApplicationEntity> applicationEntities = applicationRepository.findByCreatedByBookingType(
+					hashedUserId,
+					type.toUpperCase()
+			);
 			log.info(LOGGER_SESSIONID, LOGGER_IDTYPE, LOGGER_ID, "Number of applications found for the current user: {" + applicationEntities.size() + "} and booking type: {" + type + "}");
 			applicationsListDTO.setAllApplications(applicationEntities);
 			response.setResponse(applicationsListDTO);

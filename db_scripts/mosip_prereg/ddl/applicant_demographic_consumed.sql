@@ -7,10 +7,11 @@ CREATE TABLE prereg.applicant_demographic_consumed(
 	encrypted_dtimes timestamp NOT NULL,
 	status_code character varying(36) NOT NULL,
 	lang_code character varying(3) NOT NULL,
-	cr_appuser_id character varying(256) NOT NULL,
-	cr_by character varying(256) NOT NULL,
+	cr_appuser_id character varying(3000) NOT NULL,
+	cr_by character varying(3000) NOT NULL,
+    cr_by_hash character varying(3000),
 	cr_dtimes timestamp NOT NULL,
-	upd_by character varying(256),
+	upd_by character varying(3000),
 	upd_dtimes timestamp,
 	CONSTRAINT pk_appldemc_prereg_id PRIMARY KEY (prereg_id)
 );
